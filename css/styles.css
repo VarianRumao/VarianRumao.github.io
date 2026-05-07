@@ -160,7 +160,7 @@ nav {
   margin-bottom: 32px;
 }
 .hero h1 .accent {
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-warm) 100%);
   -webkit-background-clip: text;
