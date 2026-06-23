@@ -477,6 +477,18 @@ nav {
 }
 .skill-tag:hover { border-color: var(--accent); color: var(--accent); }
 
+.skills-group-label {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  padding: 12px 0 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+}
+
 .exp-list { display: flex; flex-direction: column; gap: 32px; }
 .exp-item {
   display: grid;
