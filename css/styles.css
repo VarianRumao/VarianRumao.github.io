@@ -479,14 +479,15 @@ nav {
 
 .skills-group-label {
   font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   color: var(--accent);
-  padding: 12px 0 16px;
-  border-top: 1px solid var(--border);
-  margin-top: 8px;
+  padding: 28px 0 20px;
+  border-top: 2px solid var(--accent);
+  margin-top: 48px;
+  margin-bottom: 24px;
 }
 
 .exp-list { display: flex; flex-direction: column; gap: 32px; }
