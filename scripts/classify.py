@@ -11,8 +11,6 @@ STATUS_PRIORITY = {
     "Rejected": 4, "Interview": 5, "Offer": 6,
 }
 
-# order matters: a post-interview rejection mentions "interview" AND "regret",
-# so Offer/Rejected are checked before Interview.
 _STATUS_RULES = [
     ("Offer", r"pleased to offer|offer of employment|formal offer|we'?d like to offer you|"
               r"we are delighted to offer|congratulations.*offer|offer letter|"
@@ -39,7 +37,6 @@ _STATUS_RULES = [
                  r"we have received|application confirmed|application successfully submitted"),
 ]
 
-# Job board and source identifiers
 _SOURCE_RULES = [
     ("LinkedIn", r"linkedin\.com|your application was sent to|via linkedin|"
                  r"linkedincareers|from linkedin|on linkedin"),
@@ -70,61 +67,72 @@ def _match(text, rules, default):
 
 
 def _guess_company(sender, subject, snippet):
+    """Extract company name - NOT job board platform."""
     text = f"{sender} {subject} {snippet}"
 
-    # Try to extract company from explicit mentions
+    # Priority 1: Explicit company mentions in common patterns
     patterns = [
-        r"application was sent to ([^\n͏]+?)(?: ͏|$)",  # LinkedIn format
-        r"application to .+? at ([A-Z][\w&.\-'() ]+)",  # Indeed format
-        r"(?:position|role) at ([A-Z][\w&.\-'() ]+)",
-        r"company:?\s*([A-Z][\w&.\-'() ]+)",
-        r"applying to\s+([A-Z][\w&.\-'() ]+)",
-        r"(?:congratulations|thank you),?\s*([A-Z][\w&.\-'() ]+)",
+        r"(?:application was sent to|application to|job at|position at)\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+(?:for|in|role|position|department)|$)",
+        r"Dear\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+(?:team|hr|hiring))?[,:]",
+        r"(?:company|employer):\s*([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\n|$)",
+        r"(?:thank you|congratulations|regarding your application to)\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+for|\s+position|$)",
     ]
 
     for pat in patterns:
         m = re.search(pat, text, re.I)
         if m:
             company = m.group(1).strip()
-            # Clean up common suffixes
-            company = re.sub(r"\s+(for|in|recruiting|careers|jobs).*$", "", company, flags=re.I)
-            return company.strip(" .,-")
+            company = re.sub(r"\s+(for|in|recruiting|careers|jobs|position|role).*$", "", company, flags=re.I).strip()
+            if company and len(company) > 1 and len(company) < 80:
+                return company
 
-    # Fall back to sender display name
+    # Priority 2: Extract from sender name (not domain)
     name = re.sub(r"<.*?>", "", sender).strip().strip('"')
     if name and "@" not in name and "noreply" not in name.lower() and len(name) > 2:
-        return name
+        # Clean "careers", "jobs", "recruiting" from sender name
+        if not re.search(r"\b(careers|jobs|recruiting|applicant|notification)\b", name, re.I):
+            return name
 
-    # Fall back to domain name
+    # Priority 3: Extract domain but exclude job boards
     dom = re.search(r"@([\w.\-]+)", sender)
     if dom:
         domain = dom.group(1).split(".")[0].title()
-        # Don't return generic domains
-        if domain.lower() not in ["gmail", "outlook", "yahoo", "hotmail", "aol", "mail", "email"]:
+        job_boards = ["linkedin", "indeed", "seek", "glassdoor", "ziprecruiter",
+                     "angel", "workable", "lever", "greenhouse", "talent", "mail", "noreply"]
+        if domain.lower() not in ["gmail", "outlook", "yahoo", "hotmail", "aol", "email"] and \
+           domain.lower() not in job_boards:
             return domain
 
     return "Unknown"
 
 
 def _guess_role(subject, snippet):
+    """Extract job role/position title."""
     text = f"{subject} {snippet}"
+
+    # More lenient patterns that don't require specific capitalization
     patterns = [
-        r"appl(?:y|ied|ication) for (?:the (?:role|position|job) (?:of )?)?([A-Z][\w/&.\-() ]{3,70}?)(?:\s+(?:at|with|in)|$)",
-        r"position of ([A-Z][\w/&.\-() ]{3,70}?)(?:\s+(?:at|with|in)|$)",
-        r"the ([A-Z][\w/&.\-() ]{3,70}?) (?:position|role|opportunity|job)(?:\s+(?:at|with|in)|$)",
-        r"interest in (?:the )?([A-Z][\w/&.\-() ]{3,70}?) (?:position|role|opportunity)",
-        r"(?:role|position):\s*([A-Z][\w/&.\-() ]{3,70}?)\s*(?:\n|$)",
-        r"(?:job title|job|title):\s*([A-Z][\w/&.\-() ]{3,70}?)(?:\s|$|,)",
-        r"[Oo]pportunity:?\s+([A-Z][\w/&.\-() ]{3,70}?)(?:\s|$|,)",
-        r"(?:for the role of|for a|looking for)\s+([A-Z][\w/&.\-() ]{3,70}?)(?:\s|$|,)",
+        r"(?:applying for|applied for|apply for|application for)\s+(?:the\s+)?(?:role|position|job|title)?s?\s*[:\"]?([^,.\n]{5,100}?)(?:[,.\n\)]|$)",
+        r"(?:role|position|job|title)\s*[:\"]?(?:of\s+)?([^,.\n]{5,100}?)(?:\s+(?:at|in|for|\()|[,.\n]|$)",
+        r"(?:position|role|opportunity)\s*:\s*([^,.\n]{5,100}?)(?:[,.\n]|$)",
+        r"(?:we are looking for|we seek|hiring|now hiring)\s+(?:a|an)?\s+([^,.\n]{5,100}?)(?:\s+(?:to|who|for)|[,.\n]|$)",
+        r"\"([^\"]{5,100}?)\"\s+(?:position|role|job)",
+        r"(?:interested in|interest in)\s+(?:the\s+)?([^,.\n]{5,100}?)(?:\s+(?:role|position)|[,.\n]|$)",
     ]
+
     for pat in patterns:
-        m = re.search(pat, text)
+        m = re.search(pat, text, re.I)
         if m:
-            role = re.sub(r"\s+(at|with|in|for|and)\b.*$", "", m.group(1), flags=re.I).strip(" .,-")
-            if role and len(role) > 2:
-                return role
-    return "(role unparsed)"
+            role = m.group(1).strip()
+            # Remove trailing junk
+            role = re.sub(r"\s+(?:at|in|with|for)\s+.*$", "", role, flags=re.I).strip(" .,-\"'")
+            # Must have at least 3 chars and max 100
+            if role and len(role) >= 3 and len(role) <= 100:
+                # Exclude common non-role text
+                if not re.search(r"^(email|message|dear|hello|hi|application|thank you)", role, re.I):
+                    return role
+
+    return "Unknown Role"
 
 
 def classify_with_rules(sender, subject, snippet):
