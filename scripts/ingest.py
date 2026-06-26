@@ -28,11 +28,35 @@ import crypto_util as crypto
 # Use timezone-aware UTC for timestamp generation
 UTC = dt.timezone.utc
 
+# Spam/ad patterns to skip - marketing, recruiting spam, salary surveys, etc.
+SPAM_PATTERNS = [
+    r"recruit.*for.*fee|recruitment fee|commission|contingency",
+    r"salary survey|market report|compensation report",
+    r"job posting.*service|recruiting service|job board",
+    r"sponsored|promote your (jobs|company|products)",
+    r"hire talent|hiring platform|recruitment platform",
+    r"we are hiring.*contact us|reach out.*hiring",
+    r"bulk recruiting|mass application",
+    r"automated job posting",
+]
+
 GMAIL_QUERY = os.environ.get(
     "GMAIL_QUERY",
-    'newer_than:2y (subject:application OR "thank you for applying" '
-    'OR "received your application" OR "your application was" OR unfortunately '
-    'OR interview OR "regret to inform")',
+    'newer_than:2y ('
+    'subject:application OR subject:applied OR subject:apply OR '
+    'subject:interview OR subject:"thank you" OR '
+    '"thank you for applying" OR "thanks for applying" OR '
+    '"received your application" OR "your application was" OR '
+    '"application was sent" OR "application submission" OR '
+    'interview OR "regret to inform" OR "offer of employment" OR '
+    '"job application" OR "position of" OR '
+    'from:linkedin.com OR from:indeed.com OR from:seek.com OR '
+    'from:glassdoor.com OR from:ziprecruiter.com OR from:angellist.com OR '
+    'from:workable.com OR from:lever.co OR from:greenhouse.io OR '
+    '"linkedin careers" OR "indeed jobs" OR "glassdoor" OR "ziprecruiter" OR '
+    '"welcome to apply" OR "apply now" OR "job details" OR '
+    '"application status" OR "career opportunity"'
+    ') -is:unread -in:spam -label:promotions'
 )
 PROCESSED_LABEL = os.environ.get("PROCESSED_LABEL", "Tracker-Processed")
 DATA_PATH = os.environ.get("DATA_PATH", os.path.join(
@@ -78,6 +102,15 @@ def _header(payload, name):
 def _index(items):
     """Map (account, normalized company#role) -> item for fast upsert."""
     return {(it.get("account"), it.get("key")): it for it in items}
+
+
+def _is_spam(sender, subject, snippet):
+    """Check if email looks like spam/ads/recruiting marketing."""
+    text = f"{sender} {subject} {snippet}".lower()
+    for pattern in SPAM_PATTERNS:
+        if re.search(pattern, text, re.I):
+            return True
+    return False
 
 
 def _upsert(idx, items, account, info, msg_date, thread_id):
@@ -137,9 +170,15 @@ def main():
             subject = _header(payload, "Subject")
             snippet = full.get("snippet", "")
             ts = int(full.get("internalDate", "0")) / 1000
-            msg_date = dt.datetime.utcfromtimestamp(ts).date().isoformat() if ts else ""
+            msg_date = dt.datetime.fromtimestamp(ts, tz=UTC).date().isoformat() if ts else ""
 
             info = C.classify_with_rules(sender, subject, snippet)
+
+            # skip spam/ads/recruiting marketing, but still mark it
+            if _is_spam(sender, subject, snippet):
+                svc.users().messages().modify(
+                    userId="me", id=m["id"], body={"addLabelIds": [label_id]}).execute()
+                continue
 
             # skip noise that isn't really an application touch, but still mark it
             if info["status"] == "Unknown" and info["company"] == "Unknown":
