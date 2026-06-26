@@ -67,95 +67,71 @@ def _match(text, rules, default):
 
 
 def _guess_company(sender, subject, snippet):
-    """Extract company name - NOT job board platform."""
-    text = f"{sender} {subject} {snippet}"
+    """Extract ONLY the company name from email sender domain."""
 
-    # FILTER OUT: These are clearly NOT company emails
-    noise_patterns = [
-        r"linkedin (job|alert|recommendation|learning)",
-        r"indeed (job|alert)",
-        r"job alert|job recommendation|career email",
-        r"workflow|description|salary",
-        r"creating an account|hi varian|thank you for|appreciate.*time.*effort",
-        r"for the time|submit.*application",
-    ]
-    for noise_pat in noise_patterns:
-        if re.search(noise_pat, text, re.I):
-            return "Unknown"
+    # FIRST: Try to extract from sender email domain (most reliable)
+    dom_match = re.search(r"@([\w.\-]+\.\w+)", sender)
+    if dom_match:
+        domain = dom_match.group(1).lower()
 
-    # Priority 1: Extract from snippets with explicit company patterns
-    patterns = [
-        r"^([A-Z][A-Za-z0-9\s&.\-'()]+?)[\.\,:\—]",  # Start of email: "CompanyName. We..."
-        r"(?:at|from|company|employer):\s*([A-Z][A-Za-z0-9\s&.\-'()]{2,60}?)(?:\s+(?:team|hr|hiring|talent|recruiting)|$)",
-        r"(?:Dear|Hello|Hi)\s+([A-Z][A-Za-z0-9\s&.\-'()]{2,60}?)\s+(?:Team|HR|Hiring|Recruiter)",
-    ]
+        # Extract base domain name
+        parts = domain.split(".")
+        company_from_domain = parts[-2] if len(parts) >= 2 else parts[0]
+        company_from_domain = company_from_domain.title()
 
-    for pat in patterns:
-        m = re.search(pat, text)
-        if m:
-            company = m.group(1).strip()
-            # Clean up common junk suffixes
-            company = re.sub(r"\s+(?:careers|job alerts?|talent|acquisition|team|hr|recruiting|notifications?|learning).*$", "", company, flags=re.I).strip()
-            # Remove common noise
-            if company and len(company) >= 2 and len(company) <= 70:
-                if not re.search(r"^(where|for|and|the|your|our|we|via|alert|email|message|workflow)", company, re.I):
-                    return company
+        # FILTER: Skip job boards and generic providers
+        skip_domains = {
+            "linkedin", "indeed", "seek", "glassdoor", "ziprecruiter", "angel",
+            "workable", "lever", "greenhouse", "talentdesk", "twitter", "github",
+            "stackoverflow", "gmail", "outlook", "yahoo", "hotmail", "aol",
+            "mail", "noreply", "no-reply", "notifications", "mailer", "donotreply",
+            "alert", "notification", "careers", "jobs", "recruit", "hr", "apply"
+        }
 
-    # Priority 2: Extract from sender display name (usually "Company Name <email>")
+        if company_from_domain.lower() not in skip_domains and len(company_from_domain) <= 50:
+            return company_from_domain
+
+    # SECOND: Extract from sender display name if it looks professional
     sender_name = re.sub(r"<.*?>", "", sender).strip().strip('"')
-    if sender_name and "@" not in sender_name and len(sender_name) >= 2:
-        # Filter out generic/noise sender names
-        if not re.search(r"\b(careers|jobs|recruiting|alert|notification|noreply|postmaster|mailer|no-reply|notification)\b", sender_name, re.I):
-            # Must have at least one capital letter (proper noun)
-            if re.search(r"[A-Z]", sender_name):
+    if sender_name and "@" not in sender_name and 3 <= len(sender_name) <= 60:
+        # Must look like a company name: has capital letters, no generic words
+        if re.search(r"^[A-Z]", sender_name):
+            # Filter noise
+            if not re.search(r"\b(job|alert|notification|noreply|team|recruiting|careers|learning)\b", sender_name, re.I):
                 return sender_name
 
-    # Priority 3: Extract domain (only if not a job board)
-    dom = re.search(r"@([\w.\-]+)", sender)
-    if dom:
-        domain_name = dom.group(1).lower()
-        # Exclude job boards and generic email providers
-        job_boards = ["linkedin", "indeed", "seek", "glassdoor", "ziprecruiter", "angel",
-                     "workable", "lever", "greenhouse", "talent", "recruiter", "hr-"]
-        generic = ["gmail", "outlook", "yahoo", "hotmail", "aol", "mail", "email", "noreply", "no-reply"]
-
-        if not any(board in domain_name for board in job_boards) and \
-           not any(gen in domain_name for gen in generic):
-            company_name = domain_name.split(".")[0].title()
-            # Validate it's not junk (2-40 chars, no numbers-only)
-            if 2 <= len(company_name) <= 40 and not company_name.isdigit():
-                return company_name
+    # THIRD: Last resort - extract from email start if it matches "CompanyName. We..."
+    if re.match(r"^[A-Z][a-z\s\-&.]{2,40}\.\s+(?:We|Your|Dear|Thank|Hi|This)", snippet):
+        match = re.match(r"^([A-Z][a-z\s\-&.]{2,40})\.", snippet)
+        if match:
+            return match.group(1).strip()
 
     return "Unknown"
 
 
 def _guess_role(subject, snippet):
-    """Extract job role/position title."""
-    text = f"{subject} {snippet}"
+    """Extract job role from email content."""
+    text = f"{subject}\n{snippet}".lower()
 
-    # More lenient patterns that don't require specific capitalization
-    patterns = [
-        r"(?:applying for|applied for|apply for|application for)\s+(?:the\s+)?(?:role|position|job|title)?s?\s*[:\"]?([^,.\n]{5,100}?)(?:[,.\n\)]|$)",
-        r"(?:role|position|job|title)\s*[:\"]?(?:of\s+)?([^,.\n]{5,100}?)(?:\s+(?:at|in|for|\()|[,.\n]|$)",
-        r"(?:position|role|opportunity)\s*:\s*([^,.\n]{5,100}?)(?:[,.\n]|$)",
-        r"(?:we are looking for|we seek|hiring|now hiring)\s+(?:a|an)?\s+([^,.\n]{5,100}?)(?:\s+(?:to|who|for)|[,.\n]|$)",
-        r"\"([^\"]{5,100}?)\"\s+(?:position|role|job)",
-        r"(?:interested in|interest in)\s+(?:the\s+)?([^,.\n]{5,100}?)(?:\s+(?:role|position)|[,.\n]|$)",
+    # Look for role/position/job title mentions
+    role_patterns = [
+        r"(?:role|position|job|title|title:)\s*[:\-]?\s*([a-z\s\-/&.()]{3,80}?)(?:\s+(?:at|with|in|for|—)|\.|,|$|\n)",
+        r"(?:applying for|application for|applying to)\s+(?:the\s+)?(?:role of\s+)?([a-z\s\-/&.()]{3,80}?)(?:\s+(?:at|with|in)|\.|,|$)",
+        r"([a-z\s\-/&.()]{5,80}?)\s+(?:position|role|opportunity)(?:\s+at|\.|,|$)",
+        r"(?:cloud|senior|junior|lead|staff|junior|support|engineer|analyst|manager|developer|technician|officer|specialist|architect|consultant|coordinator|administrator|technologist|operator|agent|associate|assistant|support|lead|officer|supervisor|director)\s+([a-z\s\-/&.()]{2,50}?)(?:\s+at|,|\.|$)",
     ]
 
-    for pat in patterns:
-        m = re.search(pat, text, re.I)
-        if m:
-            role = m.group(1).strip()
-            # Remove trailing junk
-            role = re.sub(r"\s+(?:at|in|with|for)\s+.*$", "", role, flags=re.I).strip(" .,-\"'")
-            # Must have at least 3 chars and max 100
-            if role and len(role) >= 3 and len(role) <= 100:
-                # Exclude common non-role text
-                if not re.search(r"^(email|message|dear|hello|hi|application|thank you)", role, re.I):
+    for pattern in role_patterns:
+        match = re.search(pattern, text, re.I)
+        if match:
+            role = match.group(1).strip().title()
+            # Validate: not too short, not garbage
+            if 3 <= len(role) <= 90:
+                # Filter noise
+                if not re.search(r"^(your|the|a|an|and|or|for|with|at|in|we|thank|dear|hi|hello)", role, re.I):
                     return role
 
-    return "Unknown Role"
+    return "Unknown"
 
 
 def classify_with_rules(sender, subject, snippet):
