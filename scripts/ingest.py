@@ -9,7 +9,7 @@ Flow (no AWS, no billing):
   5. Label each message Tracker-Processed so it's never counted twice.
   6. Re-encrypt the dataset and write data/applications.enc.json.
 
-Required env (set as GitHub Secrets):
+Required env (set as GitHub Secrets or in local .env file):
   GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, TRACKER_PASSPHRASE
 Optional env:
   GMAIL_QUERY, PROCESSED_LABEL, DATA_PATH
@@ -24,6 +24,16 @@ from googleapiclient.discovery import build
 
 import classify as C
 import crypto_util as crypto
+
+# Load from .env file if it exists (for local testing)
+if os.path.exists(".env"):
+    with open(".env") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                key, _, value = line.partition("=")
+                if key and not os.environ.get(key):
+                    os.environ[key] = value
 
 # Use timezone-aware UTC for timestamp generation
 UTC = dt.timezone.utc
