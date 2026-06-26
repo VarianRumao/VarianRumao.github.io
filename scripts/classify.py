@@ -70,38 +70,61 @@ def _guess_company(sender, subject, snippet):
     """Extract company name - NOT job board platform."""
     text = f"{sender} {subject} {snippet}"
 
-    # Priority 1: Explicit company mentions in common patterns
+    # FILTER OUT: These are clearly NOT company emails
+    noise_patterns = [
+        r"linkedin (job|alert|recommendation|learning)",
+        r"indeed (job|alert)",
+        r"job alert|job recommendation|career email",
+        r"workflow|description|salary",
+        r"creating an account|hi varian|thank you for|appreciate.*time.*effort",
+        r"for the time|submit.*application",
+    ]
+    for noise_pat in noise_patterns:
+        if re.search(noise_pat, text, re.I):
+            return "Unknown"
+
+    # Priority 1: Extract from snippets with explicit company patterns
     patterns = [
-        r"(?:application was sent to|application to|job at|position at)\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+(?:for|in|role|position|department)|$)",
-        r"Dear\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+(?:team|hr|hiring))?[,:]",
-        r"(?:company|employer):\s*([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\n|$)",
-        r"(?:thank you|congratulations|regarding your application to)\s+([A-Za-z][A-Za-z0-9\s&.\-'()]+?)(?:\s+for|\s+position|$)",
+        r"^([A-Z][A-Za-z0-9\s&.\-'()]+?)[\.\,:\—]",  # Start of email: "CompanyName. We..."
+        r"(?:at|from|company|employer):\s*([A-Z][A-Za-z0-9\s&.\-'()]{2,60}?)(?:\s+(?:team|hr|hiring|talent|recruiting)|$)",
+        r"(?:Dear|Hello|Hi)\s+([A-Z][A-Za-z0-9\s&.\-'()]{2,60}?)\s+(?:Team|HR|Hiring|Recruiter)",
     ]
 
     for pat in patterns:
-        m = re.search(pat, text, re.I)
+        m = re.search(pat, text)
         if m:
             company = m.group(1).strip()
-            company = re.sub(r"\s+(for|in|recruiting|careers|jobs|position|role).*$", "", company, flags=re.I).strip()
-            if company and len(company) > 1 and len(company) < 80:
-                return company
+            # Clean up common junk suffixes
+            company = re.sub(r"\s+(?:careers|job alerts?|talent|acquisition|team|hr|recruiting|notifications?|learning).*$", "", company, flags=re.I).strip()
+            # Remove common noise
+            if company and len(company) >= 2 and len(company) <= 70:
+                if not re.search(r"^(where|for|and|the|your|our|we|via|alert|email|message|workflow)", company, re.I):
+                    return company
 
-    # Priority 2: Extract from sender name (not domain)
-    name = re.sub(r"<.*?>", "", sender).strip().strip('"')
-    if name and "@" not in name and "noreply" not in name.lower() and len(name) > 2:
-        # Clean "careers", "jobs", "recruiting" from sender name
-        if not re.search(r"\b(careers|jobs|recruiting|applicant|notification)\b", name, re.I):
-            return name
+    # Priority 2: Extract from sender display name (usually "Company Name <email>")
+    sender_name = re.sub(r"<.*?>", "", sender).strip().strip('"')
+    if sender_name and "@" not in sender_name and len(sender_name) >= 2:
+        # Filter out generic/noise sender names
+        if not re.search(r"\b(careers|jobs|recruiting|alert|notification|noreply|postmaster|mailer|no-reply|notification)\b", sender_name, re.I):
+            # Must have at least one capital letter (proper noun)
+            if re.search(r"[A-Z]", sender_name):
+                return sender_name
 
-    # Priority 3: Extract domain but exclude job boards
+    # Priority 3: Extract domain (only if not a job board)
     dom = re.search(r"@([\w.\-]+)", sender)
     if dom:
-        domain = dom.group(1).split(".")[0].title()
-        job_boards = ["linkedin", "indeed", "seek", "glassdoor", "ziprecruiter",
-                     "angel", "workable", "lever", "greenhouse", "talent", "mail", "noreply"]
-        if domain.lower() not in ["gmail", "outlook", "yahoo", "hotmail", "aol", "email"] and \
-           domain.lower() not in job_boards:
-            return domain
+        domain_name = dom.group(1).lower()
+        # Exclude job boards and generic email providers
+        job_boards = ["linkedin", "indeed", "seek", "glassdoor", "ziprecruiter", "angel",
+                     "workable", "lever", "greenhouse", "talent", "recruiter", "hr-"]
+        generic = ["gmail", "outlook", "yahoo", "hotmail", "aol", "mail", "email", "noreply", "no-reply"]
+
+        if not any(board in domain_name for board in job_boards) and \
+           not any(gen in domain_name for gen in generic):
+            company_name = domain_name.split(".")[0].title()
+            # Validate it's not junk (2-40 chars, no numbers-only)
+            if 2 <= len(company_name) <= 40 and not company_name.isdigit():
+                return company_name
 
     return "Unknown"
 
