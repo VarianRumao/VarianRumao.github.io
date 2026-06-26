@@ -19,3 +19,9 @@ node_modules/
 # Environment files
 .env
 .env.local
+
+# Job tracker — never commit OAuth secrets / Python caches
+scripts/client_secret.json
+scripts/token.json
+__pycache__/
+*.pyc

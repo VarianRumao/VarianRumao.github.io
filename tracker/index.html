@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Job Tracker — Varian Rumao</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a0d12;
+      --bg-elev: #11161e;
+      --bg-card: #141b25;
+      --border: #1f2a37;
+      --border-strong: #2d3a4d;
+      --text: #e6edf3;
+      --text-dim: #9da7b3;
+      --text-faint: #5a6470;
+      --accent: #00ffa3;
+      --accent-warm: #ffb547;
+      --accent-purple: #8b5cf6;
+      --danger: #ff5470;
+      --font-display: 'Bricolage Grotesque', serif;
+      --font-body: 'Manrope', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --max-width: 1100px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 0%, rgba(0,255,163,0.08), transparent 60%),
+        radial-gradient(ellipse 50% 30% at 80% 100%, rgba(139,92,246,0.06), transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    .wrap { max-width: var(--max-width); margin: 0 auto; padding: 40px 32px; position: relative; z-index: 1; }
+    @media (max-width: 640px) { .wrap { padding: 28px 20px; } }
+
+    /* ---------- Login / passphrase gate ---------- */
+    .gate {
+      max-width: 420px; margin: 14vh auto 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px;
+    }
+    .gate .eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.04em; }
+    .gate h1 { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin: 8px 0 4px; }
+    .gate p { color: var(--text-dim); font-size: 13.5px; margin-bottom: 22px; }
+    label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    input[type=password], input[type=text] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border-strong); color: var(--text);
+      padding: 12px 14px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 14px;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      margin-top: 18px; width: 100%; background: var(--accent); color: #04150c;
+      padding: 13px; border-radius: var(--radius-sm); font-weight: 700; font-size: 14px;
+      transition: opacity 0.2s; font-family: var(--font-body);
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .msg { color: var(--danger); font-size: 13px; margin-top: 14px; min-height: 18px; font-family: var(--font-mono); }
+    .gate .back { display: inline-block; margin-top: 18px; font-size: 12.5px; color: var(--text-faint); }
+    .gate .back:hover { color: var(--accent); }
+
+    /* ---------- Dashboard ---------- */
+    .top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; }
+    .eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.04em; }
+    h1.title { font-family: var(--font-display); font-size: 34px; font-weight: 800; line-height: 1.1; margin: 6px 0 4px; }
+    .sub { color: var(--text-dim); font-size: 14px; }
+    .ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: var(--font-mono); transition: all 0.2s; }
+    .ghost:hover { color: var(--accent); border-color: var(--accent); }
+
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin: 28px 0 24px; }
+    .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; }
+    .card .lbl { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--text-faint); text-transform: uppercase; }
+    .card .num { font-family: var(--font-display); font-size: 34px; font-weight: 800; color: var(--accent); margin-top: 6px; line-height: 1; }
+
+    .legend { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 8px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+    .bar { display: flex; height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); margin: 6px 0 26px; }
+    .bar span { display: block; height: 100%; }
+
+    .filter { background: var(--bg); border: 1px solid var(--border-strong); color: var(--text); padding: 11px 14px; border-radius: var(--radius-sm); width: 320px; max-width: 100%; margin-bottom: 16px; font-family: var(--font-mono); font-size: 13px; }
+    .filter:focus { outline: none; border-color: var(--accent); }
+
+    table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+    th { text-align: left; padding: 12px 14px; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    td { padding: 12px 14px; border-top: 1px solid var(--border); font-size: 13.5px; vertical-align: top; }
+    td.dim { color: var(--text-dim); }
+    tr:hover td { background: rgba(255,255,255,0.015); }
+    .pill { padding: 3px 10px; border-radius: 999px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+    .Interview { background: rgba(0,255,163,0.12); color: var(--accent); }
+    .Offer { background: rgba(139,92,246,0.16); color: #b79dff; }
+    .Rejected { background: rgba(255,84,112,0.14); color: var(--danger); }
+    .Withdrawn { background: rgba(255,181,71,0.14); color: var(--accent-warm); }
+    .Awaiting, .Viewed, .Unknown { background: rgba(157,167,179,0.12); color: var(--text-dim); }
+
+    .footer-note { margin-top: 28px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+    .empty { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 40px; text-align: center; color: var(--text-dim); }
+    .empty code { font-family: var(--font-mono); color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="root" class="wrap"></div>
+
+  <script>
+  // ====================================================================
+  //  Encryption scheme (must match scripts/crypto_util.py + seed script)
+  //  PBKDF2-HMAC-SHA256  ->  AES-256-GCM (tag appended to ciphertext)
+  // ====================================================================
+  const DATA_URL = "../data/applications.enc.json";
+  const SS_KEY = "jt_pass"; // passphrase kept in sessionStorage (cleared on tab close)
+
+  const b64d = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+  async function deriveKey(passphrase, salt, iter) {
+    const km = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" },
+      km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+
+  async function decryptEnvelope(passphrase, env) {
+    const key = await deriveKey(passphrase, b64d(env.salt), env.iter || 210000);
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64d(env.iv) }, key, b64d(env.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  // ---------- status helpers ----------
+  const COLORS = { Interview:"#00ffa3", Offer:"#8b5cf6", Awaiting:"#9da7b3", Viewed:"#6b7785", Rejected:"#ff5470", Withdrawn:"#ffb547", Unknown:"#5a6470" };
+  const ORDER = ["Interview","Offer","Awaiting","Viewed","Rejected","Withdrawn","Unknown"];
+
+  function computeStats(items) {
+    const byStatus = {};
+    let replies = 0;
+    for (const it of items) {
+      const s = it.status || "Unknown";
+      byStatus[s] = (byStatus[s] || 0) + 1;
+      if (it.replied === "Yes") replies++;
+    }
+    const total = items.length;
+    return {
+      total, byStatus, replies,
+      interviews: byStatus.Interview || 0,
+      rejected: byStatus.Rejected || 0,
+      awaiting: (byStatus.Awaiting || 0) + (byStatus.Viewed || 0),
+      responseRate: total ? replies / total : 0,
+    };
+  }
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  const root = document.getElementById("root");
+
+  // ---------- views ----------
+  function renderGate(error) {
+    root.innerHTML = `
+      <div class="gate">
+        <div class="eyebrow">/ private · varianrumao.com/tracker</div>
+        <h1>Job Tracker</h1>
+        <p>Live from my inbox. Enter the passphrase to decrypt the data — it never leaves this browser.</p>
+        <label for="pass">Passphrase</label>
+        <input id="pass" type="password" autofocus autocomplete="current-password" />
+        <button class="btn" id="go">Decrypt &amp; view</button>
+        <div class="msg">${error ? esc(error) : ""}</div>
+        <a class="back" href="/">← back to varianrumao.com</a>
+      </div>`;
+    const go = document.getElementById("go");
+    const pass = document.getElementById("pass");
+    const submit = () => unlock(pass.value);
+    go.onclick = submit;
+    pass.onkeydown = (e) => { if (e.key === "Enter") submit(); };
+  }
+
+  function renderLoading() {
+    root.innerHTML = `<div class="empty">Decrypting…</div>`;
+  }
+
+  async function unlock(passphrase) {
+    if (!passphrase) { renderGate("Enter a passphrase."); return; }
+    renderLoading();
+    let env;
+    try {
+      const r = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw new Error("no-data");
+      env = await r.json();
+    } catch (e) {
+      renderGate("No data file yet. Run the GitHub Action (or scripts/ingest.py) once to generate it.");
+      return;
+    }
+    let data;
+    try {
+      data = await decryptEnvelope(passphrase, env);
+    } catch (e) {
+      sessionStorage.removeItem(SS_KEY);
+      renderGate("Wrong passphrase, or the data is corrupt.");
+      return;
+    }
+    sessionStorage.setItem(SS_KEY, passphrase);
+    renderDash(data);
+  }
+
+  function renderDash(data) {
+    const items = (data.items || []).slice();
+    items.sort((a, b) => (b.lastEmailDate || "").localeCompare(a.lastEmailDate || ""));
+    const stats = computeStats(items);
+    const segs = ORDER.filter(k => stats.byStatus[k]).map(k => ({ k, v: stats.byStatus[k] }));
+    const updated = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "—";
+
+    root.innerHTML = `
+      <div class="top">
+        <div>
+          <div class="eyebrow">/ live from my inbox</div>
+          <h1 class="title">Job Search Tracker</h1>
+          <div class="sub">${stats.total} application${stats.total === 1 ? "" : "s"} · updated ${esc(updated)}</div>
+        </div>
+        <button class="ghost" id="lock">Lock</button>
+      </div>
+
+      <div class="cards">
+        <div class="card"><div class="lbl">Total</div><div class="num">${stats.total}</div></div>
+        <div class="card"><div class="lbl">Interviews</div><div class="num">${stats.interviews}</div></div>
+        <div class="card"><div class="lbl">Rejected</div><div class="num">${stats.rejected}</div></div>
+        <div class="card"><div class="lbl">Awaiting</div><div class="num">${stats.awaiting}</div></div>
+        <div class="card"><div class="lbl">Replies</div><div class="num">${stats.replies}</div></div>
+        <div class="card"><div class="lbl">Response</div><div class="num">${Math.round(stats.responseRate * 100)}%</div></div>
+      </div>
+
+      <div class="legend">${segs.map(s => `<span><span class="dot" style="background:${COLORS[s.k]}"></span>${s.k} (${s.v})</span>`).join("")}</div>
+      <div class="bar">${segs.map(s => `<span style="background:${COLORS[s.k]};flex:${s.v}" title="${s.k}: ${s.v}"></span>`).join("")}</div>
+
+      <input class="filter" id="filter" placeholder="filter company / role / source…" />
+
+      ${items.length ? `
+      <table>
+        <thead><tr><th>Company</th><th>Role</th><th>Source</th><th>Status</th><th>Replied</th><th>Last update</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>` : `<div class="empty">No applications yet. Once the ingest runs against your inbox, they'll appear here.</div>`}
+
+      <div class="footer-note">decrypted locally · AES-256-GCM · data file is ciphertext in a public repo</div>`;
+
+    document.getElementById("lock").onclick = () => {
+      sessionStorage.removeItem(SS_KEY);
+      renderGate(null);
+    };
+
+    const rowsEl = document.getElementById("rows");
+    const filterEl = document.getElementById("filter");
+    const draw = () => {
+      if (!rowsEl) return;
+      const q = (filterEl.value || "").toLowerCase();
+      const rs = items.filter(r => `${r.company} ${r.role} ${r.source}`.toLowerCase().includes(q));
+      rowsEl.innerHTML = rs.map(r => `
+        <tr>
+          <td>${esc(r.company)}</td>
+          <td>${esc(r.role)}</td>
+          <td class="dim">${esc(r.source)}</td>
+          <td><span class="pill ${esc(r.status)}">${esc(r.status)}</span></td>
+          <td class="dim">${esc(r.replied || "")}</td>
+          <td class="dim">${esc(r.lastEmailDate || "")}</td>
+        </tr>`).join("");
+    };
+    if (filterEl) filterEl.oninput = draw;
+    draw();
+  }
+
+  // ---------- boot ----------
+  const remembered = sessionStorage.getItem(SS_KEY);
+  if (remembered) { unlock(remembered); } else { renderGate(null); }
+  </script>
+</body>
+</html>
