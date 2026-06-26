@@ -25,9 +25,12 @@ from googleapiclient.discovery import build
 import classify as C
 import crypto_util as crypto
 
+# Use timezone-aware UTC for timestamp generation
+UTC = dt.timezone.utc
+
 GMAIL_QUERY = os.environ.get(
     "GMAIL_QUERY",
-    'newer_than:120d (subject:application OR "thank you for applying" '
+    'newer_than:2y (subject:application OR "thank you for applying" '
     'OR "received your application" OR "your application was" OR unfortunately '
     'OR interview OR "regret to inform")',
 )
@@ -79,7 +82,7 @@ def _index(items):
 
 def _upsert(idx, items, account, info, msg_date, thread_id):
     key = f"{_norm(info['company'])}#{_norm(info['role'])}"
-    now = dt.datetime.utcnow().isoformat() + "Z"
+    now = dt.datetime.now(UTC).isoformat().replace('+00:00', 'Z')
     existing = idx.get((account, key))
 
     if existing:
