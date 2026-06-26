@@ -182,6 +182,12 @@ def main():
             ts = int(full.get("internalDate", "0")) / 1000
             msg_date = dt.datetime.fromtimestamp(ts, tz=UTC).date().isoformat() if ts else ""
 
+            # skip non-application emails first (LinkedIn alerts, personal messages, flights, etc.)
+            if C.is_junk_email(sender, subject, snippet):
+                svc.users().messages().modify(
+                    userId="me", id=m["id"], body={"addLabelIds": [label_id]}).execute()
+                continue
+
             info = C.classify_with_rules(sender, subject, snippet)
 
             # skip spam/ads/recruiting marketing, but still mark it

@@ -1,0 +1,44 @@
+name: Reset tracker (wipe data + re-label)
+
+# MANUAL ONLY — run this whenever you want to wipe old bad data
+# and re-process all emails with the latest extraction logic.
+# After this completes, the ingest workflow will re-classify everything.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r scripts/requirements.txt
+
+      - name: Reset tracker
+        env:
+          GMAIL_CLIENT_ID: ${{ secrets.GMAIL_CLIENT_ID }}
+          GMAIL_CLIENT_SECRET: ${{ secrets.GMAIL_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          TRACKER_PASSPHRASE: ${{ secrets.TRACKER_PASSPHRASE }}
+        run: python scripts/reset_tracker.py
+
+      - name: Commit cleared data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/applications.enc.json
+          if git diff --staged --quiet; then
+            echo "No changes."
+          else
+            git commit -m "chore: reset tracker data [skip ci]"
+            git push
+          fi
