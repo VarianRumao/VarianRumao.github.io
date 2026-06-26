@@ -206,7 +206,7 @@ def main():
         if not page:
             break
 
-    dataset = {"updatedAt": dt.datetime.utcnow().isoformat() + "Z", "items": items}
+    dataset = {"updatedAt": dt.datetime.now(UTC).isoformat().replace('+00:00', 'Z'), "items": items}
     env = crypto.encrypt(passphrase, json.dumps(dataset, ensure_ascii=False))
     os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
     with open(DATA_PATH, "w", encoding="utf-8") as f:
