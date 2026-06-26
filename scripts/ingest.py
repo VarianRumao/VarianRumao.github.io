@@ -42,7 +42,7 @@ SPAM_PATTERNS = [
 
 GMAIL_QUERY = os.environ.get(
     "GMAIL_QUERY",
-    'newer_than:2y ('
+    'newer_than:6m ('
     'subject:application OR subject:applied OR subject:apply OR '
     'subject:interview OR subject:"thank you" OR '
     '"thank you for applying" OR "thanks for applying" OR '
