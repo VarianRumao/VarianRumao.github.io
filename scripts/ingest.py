@@ -66,7 +66,7 @@ GMAIL_QUERY = os.environ.get(
     '"linkedin careers" OR "indeed jobs" OR "glassdoor" OR "ziprecruiter" OR '
     '"welcome to apply" OR "apply now" OR "job details" OR '
     '"application status" OR "career opportunity"'
-    ') -is:unread -in:spam -label:promotions'
+    ') -in:spam -label:promotions'
 )
 PROCESSED_LABEL = os.environ.get("PROCESSED_LABEL", "Tracker-Processed")
 DATA_PATH = os.environ.get("DATA_PATH", os.path.join(
