@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Job Tracker — Varian Rumao</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0a0d12;
+      --bg-elev: #11161e;
+      --bg-card: #141b25;
+      --border: #1f2a37;
+      --border-strong: #2d3a4d;
+      --text: #e6edf3;
+      --text-dim: #9da7b3;
+      --text-faint: #5a6470;
+      --accent: #00ffa3;
+      --accent-warm: #ffb547;
+      --accent-purple: #8b5cf6;
+      --danger: #ff5470;
+      --font-display: 'Bricolage Grotesque', serif;
+      --font-body: 'Manrope', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --max-width: 1600px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(0,255,163,0.12), transparent 50%),
+        radial-gradient(ellipse 70% 40% at 90% 110%, rgba(139,92,246,0.08), transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0); }
+      33% { transform: translate(30px, -30px); }
+      66% { transform: translate(-20px, 20px); }
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    .wrap { max-width: var(--max-width); margin: 0 auto; padding: 40px 32px; position: relative; z-index: 1; }
+    @media (max-width: 640px) { .wrap { padding: 28px 20px; } }
+
+    /* Gate */
+    .gate {
+      max-width: 420px; margin: 14vh auto 0;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px;
+    }
+    .gate .eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.04em; }
+    .gate h1 { font-family: var(--font-display); font-size: 26px; font-weight: 700; margin: 8px 0 4px; }
+    .gate p { color: var(--text-dim); font-size: 13.5px; margin-bottom: 22px; }
+    label { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    input[type=password], input[type=text] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border-strong); color: var(--text);
+      padding: 12px 14px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 14px;
+    }
+    input:focus { outline: none; border-color: var(--accent); }
+    .btn {
+      margin-top: 18px; width: 100%; background: var(--accent); color: #04150c;
+      padding: 13px; border-radius: var(--radius-sm); font-weight: 700; font-size: 14px;
+      transition: opacity 0.2s; font-family: var(--font-body);
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .msg { color: var(--danger); font-size: 13px; margin-top: 14px; min-height: 18px; font-family: var(--font-mono); }
+    .gate .back { display: inline-block; margin-top: 18px; font-size: 12.5px; color: var(--text-faint); }
+    .gate .back:hover { color: var(--accent); }
+
+    /* Dashboard */
+    .top { display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+    .eyebrow { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.04em; }
+    h1.title { font-family: var(--font-display); font-size: 34px; font-weight: 800; line-height: 1.1; margin: 6px 0 4px; }
+    .sub { color: var(--text-dim); font-size: 14px; }
+    .ghost { background: transparent; color: var(--text-dim); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 13px; font-family: var(--font-mono); transition: all 0.2s; }
+    .ghost:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* KPI Cards */
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin: 28px 0; }
+    .kpi { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; }
+    .kpi .label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em; color: var(--text-faint); text-transform: uppercase; }
+    .kpi .value { font-family: var(--font-display); font-size: 28px; font-weight: 800; color: var(--accent); margin-top: 6px; }
+
+    /* Charts */
+    .charts-section { margin: 32px 0; }
+    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; }
+    .chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; }
+    .chart-card h3 { font-family: var(--font-display); font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+    .chart-container { position: relative; height: 300px; }
+
+    /* List Section */
+    .list-section { margin: 32px 0; }
+    .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .list-header h2 { font-family: var(--font-display); font-size: 20px; font-weight: 700; }
+    .filter { background: var(--bg); border: 1px solid var(--border-strong); color: var(--text); padding: 10px 12px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 13px; }
+    .filter:focus { outline: none; border-color: var(--accent); }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+    thead { background: rgba(255,255,255,0.02); }
+    th { text-align: left; padding: 14px; font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); border-bottom: 1px solid var(--border); }
+    td { padding: 14px; border-top: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+    td.dim { color: var(--text-dim); }
+    tr { cursor: pointer; transition: background 0.15s; }
+    tr:hover td { background: rgba(0,255,163,0.03); }
+
+    .company-name { font-weight: 700; color: var(--text); font-size: 14px; }
+    .platform { font-family: var(--font-mono); font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+    .role-name { color: var(--text-dim); font-size: 13px; }
+
+    .pill { padding: 4px 12px; border-radius: 999px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; white-space: nowrap; display: inline-block; }
+    .Interview { background: rgba(0,255,163,0.12); color: var(--accent); }
+    .Offer { background: rgba(139,92,246,0.16); color: #b79dff; }
+    .Rejected { background: rgba(255,84,112,0.14); color: var(--danger); }
+    .Withdrawn { background: rgba(255,181,71,0.14); color: var(--accent-warm); }
+    .Awaiting, .Viewed, .Unknown { background: rgba(157,167,179,0.12); color: var(--text-dim); }
+
+    .footer-note { margin-top: 32px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-faint); }
+    .empty { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 40px; text-align: center; color: var(--text-dim); }
+
+    /* Modal */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+    .modal.active { display: flex; }
+    .modal-content { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; max-width: 650px; max-height: 90vh; overflow-y: auto; width: 100%; }
+    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .modal h2 { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+    .modal-close { font-size: 28px; color: var(--text-dim); cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: var(--accent); }
+    .detail-row { display: flex; gap: 20px; margin: 14px 0; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+    .detail-label { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); text-transform: uppercase; min-width: 90px; }
+    .detail-value { flex: 1; color: var(--text); font-size: 13.5px; }
+    .detail-value strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div id="root" class="wrap"></div>
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><h2 id="modal-company"></h2><div id="modal-platform" class="platform"></div></div>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+  const DATA_URL = "../data/applications.enc.json";
+  const SS_KEY = "jt_pass";
+
+  const b64d = (s) => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+  async function deriveKey(passphrase, salt, iter) {
+    const km = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(passphrase), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt, iterations: iter, hash: "SHA-256" },
+      km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+
+  async function decryptEnvelope(passphrase, env) {
+    const key = await deriveKey(passphrase, b64d(env.salt), env.iter || 210000);
+    const pt = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: b64d(env.iv) }, key, b64d(env.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  }
+
+  const COLORS = { Interview:"#00ffa3", Offer:"#8b5cf6", Awaiting:"#9da7b3", Viewed:"#6b7785", Rejected:"#ff5470", Withdrawn:"#ffb547", Unknown:"#5a6470" };
+  const ORDER = ["Interview","Offer","Awaiting","Viewed","Rejected","Withdrawn","Unknown"];
+
+  function computeStats(items) {
+    const byStatus = {}, bySource = {}, byCompany = {};
+    let replies = 0;
+    for (const it of items) {
+      const s = it.status || "Unknown";
+      const src = it.source || "Company";
+      const comp = it.company || "Unknown";
+      byStatus[s] = (byStatus[s] || 0) + 1;
+      bySource[src] = (bySource[src] || 0) + 1;
+      byCompany[comp] = (byCompany[comp] || 0) + 1;
+      if (it.replied === "Yes") replies++;
+    }
+    const total = items.length;
+    return {
+      total, byStatus, bySource, byCompany, replies,
+      interviews: byStatus.Interview || 0,
+      rejected: byStatus.Rejected || 0,
+      awaiting: (byStatus.Awaiting || 0) + (byStatus.Viewed || 0),
+      responseRate: total ? replies / total : 0,
+    };
+  }
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  const root = document.getElementById("root");
+  const modal = document.getElementById("modal");
+  let chartsInstance = { statusChart: null, sourceChart: null };
+  let allItems = [];
+
+  function renderGate(error) {
+    root.innerHTML = `
+      <div class="gate">
+        <div class="eyebrow">/ private · varianrumao.com/tracker</div>
+        <h1>Job Tracker</h1>
+        <p>Live from my inbox. Enter the passphrase to decrypt the data — it never leaves this browser.</p>
+        <label for="pass">Passphrase</label>
+        <input id="pass" type="password" autofocus autocomplete="current-password" />
+        <button class="btn" id="go">Decrypt &amp; view</button>
+        <div class="msg">${error ? esc(error) : ""}</div>
+        <a class="back" href="/">← back to varianrumao.com</a>
+      </div>`;
+    const go = document.getElementById("go");
+    const pass = document.getElementById("pass");
+    const submit = () => unlock(pass.value);
+    go.onclick = submit;
+    pass.onkeydown = (e) => { if (e.key === "Enter") submit(); };
+  }
+
+  function renderLoading() {
+    root.innerHTML = `<div class="empty">Decrypting…</div>`;
+  }
+
+  async function unlock(passphrase) {
+    if (!passphrase) { renderGate("Enter a passphrase."); return; }
+    renderLoading();
+    let env;
+    try {
+      const r = await fetch(DATA_URL + "?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw new Error("no-data");
+      env = await r.json();
+    } catch (e) {
+      renderGate("No data file yet. Run the GitHub Action (or scripts/ingest.py) once to generate it.");
+      return;
+    }
+    let data;
+    try {
+      data = await decryptEnvelope(passphrase, env);
+    } catch (e) {
+      sessionStorage.removeItem(SS_KEY);
+      renderGate("Wrong passphrase, or the data is corrupt.");
+      return;
+    }
+    sessionStorage.setItem(SS_KEY, passphrase);
+    renderDash(data);
+  }
+
+  function renderDash(data) {
+    allItems = (data.items || []).slice();
+    allItems.sort((a, b) => (b.lastEmailDate || "").localeCompare(a.lastEmailDate || ""));
+    const stats = computeStats(allItems);
+    const updated = data.updatedAt ? new Date(data.updatedAt).toLocaleString() : "—";
+
+    root.innerHTML = `
+      <div class="top">
+        <div>
+          <div class="eyebrow">/ live from my inbox</div>
+          <h1 class="title">Job Search Tracker</h1>
+          <div class="sub">${stats.total} application${stats.total === 1 ? "" : "s"} · updated ${esc(updated)}</div>
+        </div>
+        <button class="ghost" id="lock">Lock</button>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="label">Total</div><div class="value">${stats.total}</div></div>
+        <div class="kpi"><div class="label">Interviews</div><div class="value">${stats.interviews}</div></div>
+        <div class="kpi"><div class="label">Rejected</div><div class="value">${stats.rejected}</div></div>
+        <div class="kpi"><div class="label">Awaiting</div><div class="value">${stats.awaiting}</div></div>
+        <div class="kpi"><div class="label">Response</div><div class="value">${Math.round(stats.responseRate * 100)}%</div></div>
+      </div>
+
+      <div class="charts-section">
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Status Distribution</h3>
+            <div class="chart-container">
+              <canvas id="statusChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <h3>Applications by Platform</h3>
+            <div class="chart-container">
+              <canvas id="sourceChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="list-section">
+        <div class="list-header">
+          <h2>All Applications</h2>
+          <input class="filter" id="filter" placeholder="search company or role…" />
+        </div>
+
+        ${allItems.length ? `
+        <table>
+          <thead><tr>
+            <th style="min-width: 180px;">Company</th>
+            <th style="min-width: 140px;">Platform</th>
+            <th style="min-width: 160px;">Role</th>
+            <th style="min-width: 100px;">Status</th>
+            <th style="min-width: 100px;">Applied</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>` : `<div class="empty">No applications yet. Once the ingest runs against your inbox, they'll appear here.</div>`}
+      </div>
+
+      <div class="footer-note">decrypted locally · AES-256-GCM · data file is ciphertext in a public repo</div>`;
+
+    document.getElementById("lock").onclick = () => {
+      sessionStorage.removeItem(SS_KEY);
+      renderGate(null);
+    };
+
+    const rowsEl = document.getElementById("rows");
+    const filterEl = document.getElementById("filter");
+    const draw = () => {
+      if (!rowsEl) return;
+      const q = (filterEl.value || "").toLowerCase();
+      const rs = allItems.filter(r => `${r.company} ${r.role} ${r.source}`.toLowerCase().includes(q));
+      rowsEl.innerHTML = rs.map((r, idx) => `
+        <tr onclick="showDetail(${idx})">
+          <td><div class="company-name">${esc(r.company)}</div></td>
+          <td><div class="platform">${esc(r.source)}</div></td>
+          <td><div class="role-name">${esc(r.role)}</div></td>
+          <td><span class="pill ${esc(r.status)}">${esc(r.status)}</span></td>
+          <td class="dim">${esc(r.lastEmailDate || "—")}</td>
+        </tr>`).join("");
+    };
+    if (filterEl) filterEl.oninput = draw;
+    draw();
+
+    setTimeout(() => {
+      const statusCtx = document.getElementById("statusChart")?.getContext("2d");
+      const sourceCtx = document.getElementById("sourceChart")?.getContext("2d");
+      if (statusCtx && sourceCtx) renderCharts(stats, statusCtx, sourceCtx);
+    }, 100);
+  }
+
+  function renderCharts(stats, statusCtx, sourceCtx) {
+    const statusSegs = ORDER.filter(k => stats.byStatus[k]).map(k => ({ k, v: stats.byStatus[k] }));
+    const sourceSegs = Object.entries(stats.bySource).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    if (chartsInstance.statusChart) chartsInstance.statusChart.destroy();
+    chartsInstance.statusChart = new Chart(statusCtx, {
+      type: "doughnut",
+      data: {
+        labels: statusSegs.map(s => s.k),
+        datasets: [{
+          data: statusSegs.map(s => s.v),
+          backgroundColor: statusSegs.map(s => COLORS[s.k]),
+          borderColor: "#141b25",
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: "#9da7b3", font: { family: "'JetBrains Mono'" }, padding: 16 } } }
+      }
+    });
+
+    if (chartsInstance.sourceChart) chartsInstance.sourceChart.destroy();
+    chartsInstance.sourceChart = new Chart(sourceCtx, {
+      type: "bar",
+      data: {
+        labels: sourceSegs.map(s => s[0]),
+        datasets: [{
+          label: "Applications",
+          data: sourceSegs.map(s => s[1]),
+          backgroundColor: "#00ffa3",
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#9da7b3" }, grid: { color: "#1f2a37" } },
+          y: { ticks: { color: "#9da7b3" }, grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  window.showDetail = (idx) => {
+    const item = allItems[idx];
+    if (!item) return;
+    document.getElementById("modal-company").textContent = esc(item.company);
+    document.getElementById("modal-platform").textContent = esc(item.source);
+    document.getElementById("modal-body").innerHTML = `
+      <div class="detail-row">
+        <div class="detail-label">Role</div>
+        <div class="detail-value"><strong>${esc(item.role)}</strong></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Status</div>
+        <div class="detail-value"><span class="pill ${esc(item.status)}">${esc(item.status)}</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Applied</div>
+        <div class="detail-value">${esc(item.lastEmailDate || "—")}</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">Replied</div>
+        <div class="detail-value">${esc(item.replied || "—")}</div>
+      </div>
+      ${item.firstSeen ? `<div class="detail-row">
+        <div class="detail-label">First Seen</div>
+        <div class="detail-value">${esc(item.firstSeen)}</div>
+      </div>` : ""}
+    `;
+    modal.classList.add("active");
+  };
+
+  modal.onclick = (e) => {
+    if (e.target === modal) modal.classList.remove("active");
+  };
+  document.querySelector(".modal-close")?.addEventListener("click", () => modal.classList.remove("active"));
+
+  const remembered = sessionStorage.getItem(SS_KEY);
+  if (remembered) { unlock(remembered); } else { renderGate(null); }
+  </script>
+</body>
+</html>

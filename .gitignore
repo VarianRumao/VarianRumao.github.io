@@ -1,0 +1,27 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor folders
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependency directories (in case you add tools later)
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# Job tracker — never commit OAuth secrets / Python caches
+scripts/client_secret.json
+scripts/token.json
+__pycache__/
+*.pyc
